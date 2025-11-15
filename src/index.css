@@ -13,3 +13,10 @@
         scrollbar-width: none;  /* Firefox */
   }
 }
+
+.textcolor {
+  color: #a51d34 !important;
+}
+.bg-color {
+  background-color: #a51d34 !important;
+}

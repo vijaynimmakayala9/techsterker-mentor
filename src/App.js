@@ -120,6 +120,8 @@ import MentorCoursesList from "./Pages/MentorCoursesList.js";
 import CreateLiveClassByMentor from "./Pages/CreateLiveClasses.js";
 import UploadAttendanceCSV from "./Pages/UploadAttendanceCSV.js";
 import MentorGetAttendance from "./Pages/MentorGetAttendance.js";
+import ChatModule from "./Pages/Chats/Chats.js";
+import MentorChats from "./Pages/Chats/Chats.js";
 
 
 
@@ -254,6 +256,7 @@ function App() {
               <Route path="/createliveclasses" element={<CreateLiveClassByMentor />} />
               <Route path="/uploadattendance" element={<UploadAttendanceCSV />} />
               <Route path="/mentorgetattendance" element={<MentorGetAttendance />} />
+              <Route path="/chats" element={<MentorChats />} />
 
 
 

@@ -12,7 +12,7 @@ const Navbar = ({ setIsCollapsed, isCollapsed }) => {
   };
 
   return (
-    <nav className="bg-blue-800 text-white sticky top-0 w-full h-16 px-4 flex items-center shadow-lg z-50">
+    <nav className="bg-color text-white sticky top-0 w-full h-16 px-4 flex items-center shadow-lg z-50">
       {/* Sidebar toggle button */}
       <button onClick={() => setIsCollapsed(!isCollapsed)} className="text-xl p-2">
         {isCollapsed ? (
@@ -43,8 +43,8 @@ const Navbar = ({ setIsCollapsed, isCollapsed }) => {
       {/* Logo + Redemly title on the right side */}
       <div className="flex items-center gap-2 pr-4">
         <img
-          src="/logo.png"
-          alt="Vendor Logo"
+          src="/lightlogo.png"
+          alt="Logo"
           className="w-[40px] h-auto" // No border or circle
         />
       </div>

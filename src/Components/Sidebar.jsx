@@ -27,7 +27,7 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
       name: "Assigned Courses",
       dropdown: [{ name: "View Courses", path: "/mentorcourselist" }],
     },
-     {
+    {
       icon: <i className="ri-book-open-fill text-white"></i>,
       name: "Assigned Enrollments",
       dropdown: [{ name: "View Enrollments", path: "/mentorenrollments" }],
@@ -38,10 +38,13 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
       dropdown: [{ name: "View Batches", path: "/mentorbatchs" }],
     },
     {
-      icon: <i className="ri-user-fill text-white"></i>,
-      name: "Students",
-      dropdown: [{ name: "All Students", path: "/mentoruserlist" }],
-    },
+      icon: <i className="ri-chat-3-fill text-white"></i>,
+      name: "Chats",
+      dropdown: [
+        { name: "Chats", path: "/chats" },
+      ],
+    }
+    ,
     {
       icon: <i className="ri-layout-fill text-white"></i>,
       name: "Classes",
@@ -66,9 +69,8 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
 
   return (
     <div
-      className={`transition-all duration-300 ${
-        isMobile ? (isCollapsed ? "w-0" : "w-64") : isCollapsed ? "w-16" : "w-64"
-      } h-screen overflow-y-scroll no-scrollbar flex flex-col bg-blue-800`}
+      className={`transition-all duration-300 ${isMobile ? (isCollapsed ? "w-0" : "w-64") : isCollapsed ? "w-16" : "w-64"
+        } h-screen overflow-y-scroll no-scrollbar flex flex-col bg-color`}
     >
       <div className="sticky top-0 p-4 font-bold text-white flex justify-center text-xl">
         <span>Mentor Panel</span>
@@ -87,9 +89,8 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
                 {item.name}
               </span>
               <FaChevronDown
-                className={`ml-auto text-xs transform ${
-                  openDropdown === item.name ? "rotate-180" : "rotate-0"
-                }`}
+                className={`ml-auto text-xs transform ${openDropdown === item.name ? "rotate-180" : "rotate-0"
+                  }`}
               />
             </div>
             {openDropdown === item.name && (
