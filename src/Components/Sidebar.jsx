@@ -114,18 +114,18 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
       gradient: "from-cyan-500 to-blue-600",
       dropdown: [{ name: "Overview", path: "/dashboard", icon: <FaChevronRight className="text-xs" /> }],
     },
-    {
-      icon: getIconForItem("Courses"),
-      name: "Courses",
-      gradient: "from-emerald-500 to-teal-500",
-      dropdown: [{ name: "View Courses", path: "/mentorcourselist", icon: <FaChevronRight className="text-xs" /> }],
-    },
-    {
-      icon: getIconForItem("Enrollments"),
-      name: "Enrollments",
-      gradient: "from-violet-500 to-purple-600",
-      dropdown: [{ name: "View Enrollments", path: "/mentorenrollments", icon: <FaChevronRight className="text-xs" /> }],
-    },
+    // {
+    //   icon: getIconForItem("Courses"),
+    //   name: "Courses",
+    //   gradient: "from-emerald-500 to-teal-500",
+    //   dropdown: [{ name: "View Courses", path: "/mentorcourselist", icon: <FaChevronRight className="text-xs" /> }],
+    // },
+    // {
+    //   icon: getIconForItem("Enrollments"),
+    //   name: "Enrollments",
+    //   gradient: "from-violet-500 to-purple-600",
+    //   dropdown: [{ name: "View Enrollments", path: "/mentorenrollments", icon: <FaChevronRight className="text-xs" /> }],
+    // },
     {
       icon: getIconForItem("Batches"),
       name: "Batches",
@@ -140,16 +140,16 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
         { name: "Chats", path: "/chats", icon: <FaChevronRight className="text-xs" /> },
       ],
     },
-    {
-      icon: getIconForItem("Quizzes"),
-      name: "Quizzes",
-      gradient: "from-indigo-500 to-blue-500",
-      dropdown: [
-        { name: "Create Quiz", path: "/quizz", icon: <FaChevronRight className="text-xs" /> },
-        { name: "Quiz List", path: "/quizzlist", icon: <FaChevronRight className="text-xs" /> },
-        { name: "Quiz Submissions", path: "/quizzsubmission", icon: <FaChevronRight className="text-xs" /> },
-      ],
-    },
+    // {
+    //   icon: getIconForItem("Quizzes"),
+    //   name: "Quizzes",
+    //   gradient: "from-indigo-500 to-blue-500",
+    //   dropdown: [
+    //     { name: "Create Quiz", path: "/quizz", icon: <FaChevronRight className="text-xs" /> },
+    //     { name: "Quiz List", path: "/quizzlist", icon: <FaChevronRight className="text-xs" /> },
+    //     { name: "Quiz Submissions", path: "/quizzsubmission", icon: <FaChevronRight className="text-xs" /> },
+    //   ],
+    // },
     {
       icon: getIconForItem("Classes"),
       name: "Classes",
@@ -159,14 +159,17 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
         { name: "Live Classes", path: "/mentorliveclasses", icon: <FaChevronRight className="text-xs" /> },
         { name: "Upload Attendance", path: "/uploadattendance", icon: <FaChevronRight className="text-xs" /> },
         { name: "All Attendance", path: "/mentorgetattendance", icon: <FaChevronRight className="text-xs" /> },
+        { name: "Create Quiz", path: "/quizz", icon: <FaChevronRight className="text-xs" /> },
+        { name: "Quiz List", path: "/quizzlist", icon: <FaChevronRight className="text-xs" /> },
+        { name: "Quiz Submissions", path: "/quizzsubmission", icon: <FaChevronRight className="text-xs" /> },
       ],
     },
-    {
-      icon: getIconForItem("Announcements"),
-      name: "Announcements",
-      gradient: "from-yellow-500 to-amber-500",
-      dropdown: [{ name: "View Announcements", path: "/announcements", icon: <FaChevronRight className="text-xs" /> }],
-    },
+    // {
+    //   icon: getIconForItem("Announcements"),
+    //   name: "Announcements",
+    //   gradient: "from-yellow-500 to-amber-500",
+    //   dropdown: [{ name: "View Announcements", path: "/announcements", icon: <FaChevronRight className="text-xs" /> }],
+    // },
     {
       icon: getIconForItem("Profile"),
       name: "Profile",

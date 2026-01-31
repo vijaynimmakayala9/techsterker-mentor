@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const API_BASE = "https://api.techsterker.com/api";
@@ -15,42 +15,40 @@ const MentorProfile = () => {
       setError("Mentor not logged in");
       return;
     }
-    fetchMentorProfile();
+    fetchProfile();
   }, [mentorId]);
 
-  const fetchMentorProfile = async () => {
+  const fetchProfile = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await axios.get(`${API_BASE}/our-mentor/profile/${mentorId}`);
-      if (res.data?.data) {
-        setMentor(res.data.data);
-      } else {
-        setError("Mentor profile not found.");
-      }
-    } catch (err) {
-      console.error("Error fetching mentor profile:", err);
-      setError("Failed to fetch mentor profile.");
+      setMentor(res.data?.data || null);
+    } catch {
+      setError("Failed to load mentor profile.");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ---------------- STATES ---------------- */
+
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <p className="text-lg">Loading mentor profile...</p>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-pulse text-indigo-500 text-sm">
+          Loading profile…
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600 text-lg">{error}</p>
+      <div className="text-center py-12">
+        <p className="text-red-600">{error}</p>
         <button
-          onClick={fetchMentorProfile}
-          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={fetchProfile}
+          className="mt-4 px-6 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
         >
           Retry
         </button>
@@ -58,21 +56,77 @@ const MentorProfile = () => {
     );
   }
 
-  return mentor ? (
-    <div className="p-6 bg-white rounded-lg shadow-lg max-w-3xl mx-auto">
-      <h2 className="text-3xl font-bold text-blue-900 mb-4">
-        {mentor.firstName} {mentor.lastName}
-      </h2>
+  if (!mentor) return null;
 
-      <div className="space-y-2">
-        <p><strong>Email:</strong> {mentor.email || "N/A"}</p>
-        <p><strong>Phone:</strong> {mentor.phoneNumber || "N/A"}</p>
-        <p><strong>Expertise:</strong> {mentor.expertise || "N/A"}</p>
-        <p><strong>Created At:</strong> {new Date(mentor.createdAt).toLocaleDateString()}</p>
-        <p><strong>Last Updated:</strong> {new Date(mentor.updatedAt).toLocaleDateString()}</p>
+  /* ---------------- UI ---------------- */
+
+  return (
+    <div className="flex justify-center px-4 py-10">
+      <div className="relative w-full max-w-sm sm:max-w-md rounded-3xl overflow-hidden shadow-[0_25px_70px_-20px_rgba(79,70,229,0.6)]">
+        
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500" />
+
+        {/* Glass Card */}
+        <div className="relative bg-white/15 backdrop-blur-xl border border-white/20">
+          
+          {/* Header */}
+          <div className="text-center px-6 pt-10 pb-6">
+            <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-white to-slate-100 flex items-center justify-center text-2xl font-bold text-indigo-700 shadow-xl ring-4 ring-white/40">
+              {mentor.firstName?.[0]}
+              {mentor.lastName?.[0]}
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white tracking-wide">
+              {mentor.firstName} {mentor.lastName}
+            </h2>
+
+            <p className="mt-1 text-sm text-indigo-100">
+              Professional Mentor
+            </p>
+
+            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/20 text-xs text-white/90 backdrop-blur">
+              ID · {mentor._id?.slice(-6)}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/20" />
+
+          {/* Info */}
+          <div className="px-6 py-6 space-y-4 text-sm">
+            <InfoRow label="Email" value={mentor.email} />
+            <InfoRow label="Phone" value={mentor.phoneNumber} />
+            <InfoRow label="Expertise" value={mentor.expertise} />
+            <InfoRow
+              label="Member Since"
+              value={new Date(mentor.createdAt).toLocaleDateString()}
+            />
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 bg-black/10 text-xs text-white/80 flex justify-between">
+            <span>TechSterker</span>
+            <span>
+              Updated ·{" "}
+              {new Date(mentor.updatedAt).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
-  ) : null;
+  );
 };
+
+/* ---------------- ROW COMPONENT ---------------- */
+
+const InfoRow = ({ label, value }) => (
+  <div className="flex justify-between gap-4">
+    <span className="text-white/70">{label}</span>
+    <span className="text-white font-medium text-right truncate max-w-[60%]">
+      {value || "N/A"}
+    </span>
+  </div>
+);
 
 export default MentorProfile;

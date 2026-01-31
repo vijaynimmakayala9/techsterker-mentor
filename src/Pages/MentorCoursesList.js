@@ -2,45 +2,48 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
 const API_BASE = "https://api.techsterker.com/api";
+const PAGE_SIZES = [5, 10, 20];
 
-// Utility to convert array of objects to CSV string
+// ---------------- CSV UTILS ----------------
 const convertToCSV = (arr) => {
-  if (!arr || arr.length === 0) return "";
-
+  if (!arr.length) return "";
   const headers = Object.keys(arr[0]);
-  const csvRows = [
-    headers.join(","), // header row first
-    ...arr.map(row =>
+  const rows = [
+    headers.join(","),
+    ...arr.map((row) =>
       headers
-        .map(fieldName => {
-          const escaped = (row[fieldName] || "").toString().replace(/"/g, '""');
-          return `"${escaped}"`;
-        })
+        .map((key) => `"${(row[key] ?? "").toString().replace(/"/g, '""')}"`)
         .join(",")
     ),
   ];
-  return csvRows.join("\n");
+  return rows.join("\n");
 };
 
-// Utility to trigger CSV download
-const downloadCSV = (csv, filename = "export.csv") => {
+const downloadCSV = (csv, filename) => {
   const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
 };
 
+// ---------------- COMPONENT ----------------
 const MentorCoursesList = () => {
+  const mentorId = localStorage.getItem("mentorId");
+
   const [courses, setCourses] = useState([]);
   const [mentorName, setMentorName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
 
-  const mentorId = localStorage.getItem("mentorId");
+  // Filters
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [startDate, setStartDate] = useState("");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!mentorId) {
@@ -52,149 +55,224 @@ const MentorCoursesList = () => {
 
   const fetchCourses = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await axios.get(`${API_BASE}/mentorenrollments/${mentorId}`);
-      const data = res.data;
-
-      if (data?.assignedCourses?.length > 0) {
-        setCourses(data.assignedCourses);
-        setMentorName(data.mentor?.fullName || "Mentor");
-      } else {
-        setCourses([]);
-        setMentorName(data.mentor?.fullName || "Mentor");
-      }
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      setError("Failed to fetch assigned courses.");
+      setCourses(res.data?.assignedCourses || []);
+      setMentorName(res.data?.mentor?.fullName || "Mentor");
+    } catch {
+      setError("Failed to load mentor courses.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter courses by search term (batchName, course description or category)
+  // ---------------- FILTERING ----------------
   const filteredCourses = useMemo(() => {
-    if (!searchTerm.trim()) return courses;
+    return courses.filter((c) => {
+      const term = search.toLowerCase();
+      const matchesSearch =
+        c.batchName?.toLowerCase().includes(term) ||
+        c.courseId?.description?.toLowerCase().includes(term) ||
+        c.category?.toLowerCase().includes(term);
 
-    return courses.filter(course => {
-      const batchName = course.batchName?.toLowerCase() || "";
-      const description = course.courseId?.description?.toLowerCase() || "";
-      const category = course.category?.toLowerCase() || "";
-      const term = searchTerm.toLowerCase();
-      return (
-        batchName.includes(term) ||
-        description.includes(term) ||
-        category.includes(term)
-      );
+      const matchesCategory = category ? c.category === category : true;
+      const matchesDate = startDate
+        ? new Date(c.startDate).toISOString().slice(0, 10) === startDate
+        : true;
+
+      return matchesSearch && matchesCategory && matchesDate;
     });
-  }, [courses, searchTerm]);
+  }, [courses, search, category, startDate]);
 
-  const handleExportCSV = () => {
-    // Prepare data for CSV - flatten structure to relevant fields
-    const dataToExport = filteredCourses.map((course, idx) => ({
-      "#": idx + 1,
-      "Batch Name": course.batchName || "",
-      "Batch Number": course.batchNumber || "",
-      "Course Description": course.courseId?.description || "",
-      Duration: course.duration || "",
-      Price: course.courseId?.price || "",
-      Timings: course.timings || "",
-      "Start Date": course.startDate ? new Date(course.startDate).toLocaleDateString() : "",
-      Category: course.category || "",
+  // ---------------- PAGINATION ----------------
+  const totalPages = Math.ceil(filteredCourses.length / pageSize);
+  const paginatedCourses = filteredCourses.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  // ---------------- CSV EXPORT ----------------
+  const exportCSV = () => {
+    const data = filteredCourses.map((c, i) => ({
+      "#": i + 1,
+      "Batch Name": c.batchName,
+      "Batch Number": c.batchNumber,
+      Description: c.courseId?.description,
+      Duration: c.duration,
+      Price: c.courseId?.price,
+      Timings: c.timings,
+      "Start Date": c.startDate
+        ? new Date(c.startDate).toLocaleDateString()
+        : "",
+      Category: c.category,
     }));
-
-    const csv = convertToCSV(dataToExport);
-    downloadCSV(csv, `${mentorName.replace(/\s+/g, "_")}_courses.csv`);
+    downloadCSV(
+      convertToCSV(data),
+      `${mentorName.replace(/\s/g, "_")}_courses.csv`
+    );
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-lg">Loading courses...</p>
-      </div>
-    );
-  }
+  if (loading)
+    return <p className="text-center py-10 text-lg">Loading courses…</p>;
 
-  if (error) {
+  if (error)
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600 text-lg">{error}</p>
+      <div className="text-center py-10">
+        <p className="text-red-600">{error}</p>
         <button
           onClick={fetchCourses}
-          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg"
         >
           Retry
         </button>
       </div>
     );
-  }
 
   return (
-    <div className="p-4 border rounded-lg shadow-lg bg-white">
-      <h2 className="text-2xl font-semibold text-blue-900 mb-4">
-        Mentor: {mentorName}
+    <div className="p-4 md:p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-xl">
+      <h2 className="text-2xl md:text-3xl font-bold text-blue-900 mb-6">
+        👨‍🏫 {mentorName} — Assigned Courses
       </h2>
 
-      <div className="flex justify-between items-center mb-4 gap-4 flex-wrap">
+      {/* FILTERS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <input
-          type="text"
-          placeholder="Search by Batch, Description, Category"
-          className="border border-gray-300 rounded px-4 py-2 w-full max-w-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          className="px-4 py-2 rounded-lg border"
+          placeholder="Search course…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <select
+          className="px-4 py-2 rounded-lg border"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">All Categories</option>
+          {[...new Set(courses.map((c) => c.category))].map(
+            (cat) =>
+              cat && (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              )
+          )}
+        </select>
+
+        <input
+          type="date"
+          className="px-4 py-2 rounded-lg border"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
         />
 
         <button
-          onClick={handleExportCSV}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-          disabled={filteredCourses.length === 0}
-          title={filteredCourses.length === 0 ? "No courses to export" : "Export CSV"}
+          onClick={exportCSV}
+          disabled={!filteredCourses.length}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
         >
           Export CSV
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-blue-600 text-white">
-              <th className="p-3 border">#</th>
-              <th className="p-3 border">Batch Name</th>
-              <th className="p-3 border">Batch Number</th>
-              <th className="p-3 border">Course Description</th>
-              <th className="p-3 border">Duration</th>
-              <th className="p-3 border">Price</th>
-              <th className="p-3 border">Timings</th>
-              <th className="p-3 border">Start Date</th>
-              <th className="p-3 border">Category</th>
+      {/* TABLE */}
+      <div className="overflow-x-auto rounded-xl bg-white shadow-md">
+        <table className="min-w-full text-sm">
+          <thead className="bg-blue-600 text-white">
+            <tr>
+              {[
+                "#",
+                "Batch",
+                "Number",
+                "Description",
+                "Duration",
+                "Price",
+                "Timings",
+                "Start",
+                "Category",
+              ].map((h) => (
+                <th key={h} className="p-3 text-left whitespace-nowrap">
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {filteredCourses.length === 0 ? (
+            {paginatedCourses.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-6 text-center text-gray-500">
-                  No assigned courses found.
+                <td colSpan="9" className="p-6 text-center text-gray-500">
+                  No courses found
                 </td>
               </tr>
             ) : (
-              filteredCourses.map((course, idx) => (
-                <tr key={course._id || idx} className="border-b hover:bg-gray-50">
-                  <td className="p-3 border text-center">{idx + 1}</td>
-                  <td className="p-3 border">{course.batchName}</td>
-                  <td className="p-3 border">{course.batchNumber}</td>
-                  <td className="p-3 border">{course.courseId?.description || "-"}</td>
-                  <td className="p-3 border">{course.duration}</td>
-                  <td className="p-3 border">₹{course.courseId?.price || "0"}</td>
-                  <td className="p-3 border">{course.timings}</td>
-                  <td className="p-3 border">
-                    {course.startDate ? new Date(course.startDate).toLocaleDateString() : "-"}
+              paginatedCourses.map((c, i) => (
+                <tr
+                  key={c._id}
+                  className="border-b hover:bg-blue-50 transition"
+                >
+                  <td className="p-3">{(page - 1) * pageSize + i + 1}</td>
+                  <td className="p-3 font-medium">{c.batchName}</td>
+                  <td className="p-3">{c.batchNumber}</td>
+                  <td className="p-3 max-w-xs truncate">
+                    {c.courseId?.description}
                   </td>
-                  <td className="p-3 border">{course.category || "-"}</td>
+                  <td className="p-3">{c.duration}</td>
+                  <td className="p-3 font-semibold text-green-600">
+                    ₹{c.courseId?.price}
+                  </td>
+                  <td className="p-3">{c.timings}</td>
+                  <td className="p-3">
+                    {new Date(c.startDate).toLocaleDateString()}
+                  </td>
+                  <td className="p-3">
+                    <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs">
+                      {c.category}
+                    </span>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex flex-wrap items-center justify-between mt-6 gap-4">
+        <div>
+          Page {page} of {totalPages || 1}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-4 py-2 rounded-lg bg-gray-200 disabled:opacity-40"
+          >
+            Prev
+          </button>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-4 py-2 rounded-lg bg-gray-200 disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(+e.target.value);
+            setPage(1);
+          }}
+          className="px-3 py-2 border rounded-lg"
+        >
+          {PAGE_SIZES.map((s) => (
+            <option key={s} value={s}>
+              {s} / page
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

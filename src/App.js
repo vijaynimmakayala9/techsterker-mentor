@@ -126,6 +126,9 @@ import MentorQuizManager from "./Pages/CreaateQuizz.js";
 import CreateQuizForm from "./Pages/CreaateQuizz.js";
 import QuizList from "./Pages/QuizList.js";
 import QuizSubmission from "./Pages/QuizSubmission.js";
+import Pdf from "./Pages/Chats/Pdf.js";
+import DownloadCoursePdf from "./Pages/Chats/Pdf.js";
+import MentorBatchDetails from "./Pages/MentorBatchDetailsById.js";
 
 
 
@@ -233,7 +236,7 @@ function App() {
               <Route path="/quizzes" element={<AllQuizzesTable />} />
               <Route path="/add-bulk-funfacts" element={<BulkFunFactUploader />} />
               <Route path="/allfanfacts" element={<AllFunFactsTable />} />
-               <Route path="/notifications" element={<AdminNotifications />} />
+              <Route path="/notifications" element={<AdminNotifications />} />
               <Route path="/create-course" element={<CreateCourse />} />
               <Route path="/courselist" element={<AllCourses />} />
               <Route path="/create-enrollment" element={<CreateEnrollment />} />
@@ -262,8 +265,10 @@ function App() {
               <Route path="/mentorgetattendance" element={<MentorGetAttendance />} />
               <Route path="/chats" element={<MentorChats />} />
               <Route path="/quizz" element={<CreateQuizForm />} />
-               <Route path="/quizzlist" element={<QuizList />} />
-               <Route path="/quizzsubmission" element={<QuizSubmission />} />
+              <Route path="/quizzlist" element={<QuizList />} />
+              <Route path="/quizzsubmission" element={<QuizSubmission />} />
+              <Route path="/batchdetails/:id" element={<MentorBatchDetails />} />
+              <Route path="/pdf" element={<DownloadCoursePdf />} />
 
 
 
