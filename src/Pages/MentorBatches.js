@@ -97,7 +97,6 @@ const MentorBatches = () => {
     return mentorData.teachingSchedule.filter((b) => {
       if (selectedCategory !== "all" && b.category !== selectedCategory)
         return false;
-
       if (!searchTerm.trim()) return true;
       const t = searchTerm.toLowerCase();
       return (
@@ -136,21 +135,21 @@ const MentorBatches = () => {
   /* ---------- STATES ---------- */
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="h-14 w-14 border-b-2 border-indigo-600 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-cyan-50">
+        <div className="h-14 w-14 border-b-4 border-indigo-600 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="bg-white p-8 rounded-xl shadow-xl text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
           <h3 className="text-xl font-bold text-red-600 mb-2">Error</h3>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchBatches}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl flex items-center gap-2"
+            className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-6 py-3 rounded-xl flex items-center gap-2"
           >
             <FiRefreshCw /> Retry
           </button>
@@ -161,33 +160,22 @@ const MentorBatches = () => {
 
   /* ---------- RENDER ---------- */
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+
         {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">My Batches</h1>
-          <p className="text-gray-600">
+        <div className="mb-10 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-xl">
+          <h1 className="text-3xl font-bold mb-1">My Teaching Batches</h1>
+          <p className="opacity-90">
             Mentor: {mentorData.mentor.fullName}
           </p>
         </div>
 
         {/* STATS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={RiNumber1}
-            label="Total Batches"
-            value={mentorData.performanceMetrics.totalBatches}
-          />
-          <StatCard
-            icon={RiTeamLine}
-            label="Total Students"
-            value={mentorData.performanceMetrics.totalStudents}
-          />
-          <StatCard
-            icon={FiCalendar}
-            label="Upcoming Batches"
-            value={mentorData.teachingSchedule.length}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatCard icon={RiNumber1} label="Total Batches" value={mentorData.performanceMetrics.totalBatches} color="indigo" />
+          <StatCard icon={RiTeamLine} label="Total Students" value={mentorData.performanceMetrics.totalStudents} color="emerald" />
+          <StatCard icon={FiCalendar} label="Upcoming Batches" value={mentorData.teachingSchedule.length} color="amber" />
           <StatCard
             icon={FiBarChart2}
             label="Avg Students / Batch"
@@ -199,11 +187,12 @@ const MentorBatches = () => {
                   )
                 : 0
             }
+            color="purple"
           />
         </div>
 
         {/* CONTROLS */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex flex-col lg:flex-row gap-4 justify-between">
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-md p-6 mb-6 flex flex-col lg:flex-row gap-4 justify-between">
           <div className="flex gap-4 flex-col sm:flex-row w-full lg:w-auto">
             <div className="relative flex-1">
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -211,36 +200,39 @@ const MentorBatches = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search batch..."
-                className="pl-12 pr-4 py-3 w-full border rounded-xl"
+                className="pl-12 pr-4 py-3 w-full border rounded-xl focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="border rounded-xl px-4 py-3"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c === "all" ? "All Categories" : c}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="pl-10 pr-4 py-3 border rounded-xl"
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c === "all" ? "All Categories" : c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button
             onClick={handleExportCSV}
             disabled={!filteredBatches.length}
-            className="bg-emerald-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 disabled:opacity-50"
+            className="bg-gradient-to-r from-emerald-500 to-teal-400 text-white px-6 py-3 rounded-xl flex items-center gap-2 disabled:opacity-50"
           >
             <RiFileExcelLine /> Export CSV
           </button>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-3xl shadow-xl overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-indigo-50">
               <tr>
                 <th className="px-6 py-4 text-left">#</th>
                 <th className="px-6 py-4 text-left">Batch</th>
@@ -252,7 +244,8 @@ const MentorBatches = () => {
             <tbody>
               {filteredBatches.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500">
+                  <td colSpan={5} className="py-16 text-center text-gray-500">
+                    <RiBookOpenLine className="mx-auto text-4xl mb-3" />
                     No batches found
                   </td>
                 </tr>
@@ -260,37 +253,34 @@ const MentorBatches = () => {
                 filteredBatches.map((b, i) => (
                   <tr
                     key={b._id}
-                    className="border-b hover:bg-gray-50 transition"
+                    className="border-b hover:bg-indigo-50/40 transition"
                   >
                     <td className="px-6 py-4 font-semibold">{i + 1}</td>
 
                     <td className="px-6 py-4">
-                      <div className="font-semibold">{b.batchNumber}</div>
-                      <div className="text-sm text-gray-500">
-                        {b.batchName}
-                      </div>
+                      <div className="font-semibold text-indigo-700">{b.batchNumber}</div>
+                      <div className="text-sm text-gray-500">{b.batchName}</div>
                     </td>
 
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <FiCalendar />
-                        {new Date(b.startDate).toLocaleDateString()}
+                        <FiCalendar /> {new Date(b.startDate).toLocaleDateString()}
                       </div>
                       <div className="text-sm text-gray-500 flex items-center gap-2">
                         <FiClock /> {b.timings}
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 font-semibold">
+                    <td className="px-6 py-4 font-bold text-emerald-600">
                       {b.studentsCount}
                     </td>
 
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleViewDetails(b._id)}
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800"
+                        className="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl hover:bg-indigo-200 transition"
                       >
-                        <FiEye /> View Details <FiChevronRight />
+                        <FiEye /> View <FiChevronRight />
                       </button>
                     </td>
                   </tr>
@@ -305,12 +295,21 @@ const MentorBatches = () => {
 };
 
 /* ---------- SMALL COMPONENT ---------- */
-const StatCard = ({ icon: Icon, label, value }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm">
-    <Icon className="text-indigo-600 text-xl mb-2" />
-    <div className="text-3xl font-bold">{value}</div>
-    <div className="text-sm text-gray-500">{label}</div>
-  </div>
-);
+const StatCard = ({ icon: Icon, label, value, color }) => {
+  const colors = {
+    indigo: "from-indigo-500 to-indigo-400",
+    emerald: "from-emerald-500 to-emerald-400",
+    amber: "from-amber-500 to-amber-400",
+    purple: "from-purple-500 to-purple-400",
+  };
+
+  return (
+    <div className={`bg-gradient-to-r ${colors[color]} text-white rounded-2xl p-6 shadow-lg`}>
+      <Icon className="text-2xl mb-2" />
+      <div className="text-3xl font-bold">{value}</div>
+      <div className="text-sm opacity-90">{label}</div>
+    </div>
+  );
+};
 
 export default MentorBatches;
