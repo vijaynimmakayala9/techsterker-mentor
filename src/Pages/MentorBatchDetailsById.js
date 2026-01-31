@@ -102,7 +102,7 @@ const MentorBatchDetails = () => {
         </div>
 
         {/* STATS */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <Stat icon={FaUsers} label="Students" value={statistics.totalStudents} />
           <Stat icon={FaCalendarAlt} label="Live Classes" value={statistics.totalLiveClasses} />
           <Stat icon={FaBook} label="Modules" value={statistics.totalCourseModules} />
