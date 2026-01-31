@@ -122,6 +122,10 @@ import UploadAttendanceCSV from "./Pages/UploadAttendanceCSV.js";
 import MentorGetAttendance from "./Pages/MentorGetAttendance.js";
 import ChatModule from "./Pages/Chats/Chats.js";
 import MentorChats from "./Pages/Chats/Chats.js";
+import MentorQuizManager from "./Pages/CreaateQuizz.js";
+import CreateQuizForm from "./Pages/CreaateQuizz.js";
+import QuizList from "./Pages/QuizList.js";
+import QuizSubmission from "./Pages/QuizSubmission.js";
 
 
 
@@ -257,6 +261,9 @@ function App() {
               <Route path="/uploadattendance" element={<UploadAttendanceCSV />} />
               <Route path="/mentorgetattendance" element={<MentorGetAttendance />} />
               <Route path="/chats" element={<MentorChats />} />
+              <Route path="/quizz" element={<CreateQuizForm />} />
+               <Route path="/quizzlist" element={<QuizList />} />
+               <Route path="/quizzsubmission" element={<QuizSubmission />} />
 
 
 
