@@ -129,6 +129,9 @@ import QuizSubmission from "./Pages/QuizSubmission.js";
 import Pdf from "./Pages/Chats/Pdf.js";
 import DownloadCoursePdf from "./Pages/Chats/Pdf.js";
 import MentorBatchDetails from "./Pages/MentorBatchDetailsById.js";
+import MentorClassModule from "./Pages/MentorClassModule.js";
+import MentorCreateTask from "./Pages/Tasks/MentorCreateTask.js";
+import MentorAllTasks from "./Pages/Tasks/MentorAllTasks.js";
 
 
 
@@ -269,6 +272,9 @@ function App() {
               <Route path="/quizzsubmission" element={<QuizSubmission />} />
               <Route path="/batchdetails/:id" element={<MentorBatchDetails />} />
               <Route path="/pdf" element={<DownloadCoursePdf />} />
+              <Route path="/classmodule" element={<MentorClassModule/>}/>
+              <Route path="/create-task" element={<MentorCreateTask/>}/>
+              <Route path="/tasklist" element={<MentorAllTasks/>}/>
 
 
 

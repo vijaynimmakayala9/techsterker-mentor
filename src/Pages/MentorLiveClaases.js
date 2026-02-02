@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { 
-  MdEdit, 
-  MdDelete, 
-  MdUploadFile, 
-  MdSearch, 
-  MdRefresh, 
-  MdDownload, 
-  MdClose, 
+import {
+  MdEdit,
+  MdDelete,
+  MdUploadFile,
+  MdSearch,
+  MdRefresh,
+  MdDownload,
+  MdClose,
   MdCalendarToday,
   MdAccessTime,
   MdLink,
@@ -17,13 +17,14 @@ import {
   MdFilterList,
   MdVideoLibrary
 } from "react-icons/md";
-import { 
-  FaChalkboardTeacher, 
+import {
+  FaChalkboardTeacher,
   FaUsers,
   FaRegCalendarCheck,
-  FaExternalLinkAlt 
+  FaExternalLinkAlt
 } from "react-icons/fa";
 import { BsThreeDotsVertical, BsFileEarmarkPdf } from "react-icons/bs";
+import { PlusCircle } from "lucide-react";
 
 const API_BASE = "https://api.techsterker.com/api";
 
@@ -77,7 +78,7 @@ const MentorLiveClasses = () => {
     setLoading(true);
     setError("");
     setSuccess("");
-    
+
     try {
       const res = await axios.get(`${API_BASE}/mentorliveclass/${mentorId}`);
       const data = res.data;
@@ -116,12 +117,12 @@ const MentorLiveClasses = () => {
   // Filter classes based on search and subject
   const filteredClasses = useMemo(() => {
     return classes.filter(cls => {
-      const matchesSearch = searchTerm === "" || 
+      const matchesSearch = searchTerm === "" ||
         (cls.className?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (cls.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesSubject = selectedSubject === "all" || cls.subjectName === selectedSubject;
-      
+
       return matchesSearch && matchesSubject;
     });
   }, [classes, searchTerm, selectedSubject]);
@@ -132,13 +133,13 @@ const MentorLiveClasses = () => {
     const total = classes.length;
     const upcoming = classes.filter(cls => new Date(cls.date) > now).length;
     const completed = classes.filter(cls => new Date(cls.date) < now).length;
-    
+
     return { total, upcoming, completed };
   }, [classes]);
 
   const handleExportCSV = () => {
     if (filteredClasses.length === 0) return;
-    
+
     const csvData = filteredClasses.map((cls, idx) => ({
       "#": idx + 1,
       "Class Name": cls.className || "",
@@ -152,7 +153,7 @@ const MentorLiveClasses = () => {
     const headers = Object.keys(csvData[0]);
     const csvRows = [
       headers.join(","),
-      ...csvData.map(row => 
+      ...csvData.map(row =>
         headers.map(header => {
           const value = row[header];
           const escapedValue = String(value || '').replace(/"/g, '""');
@@ -171,7 +172,7 @@ const MentorLiveClasses = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     setSuccess(`Exported ${filteredClasses.length} classes to CSV`);
     setTimeout(() => setSuccess(""), 3000);
   };
@@ -196,7 +197,7 @@ const MentorLiveClasses = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editClass) return;
-    
+
     const { className, subjectName, date, timing, link } = editForm;
     if (!className || !subjectName || !date || !timing || !link) {
       setError("Please fill all required fields");
@@ -208,13 +209,13 @@ const MentorLiveClasses = () => {
       const res = await axios.put(`${API_BASE}/liveclass/${editClass._id}`, {
         className, subjectName, date, timing, link
       });
-      
+
       if (res.data.success) {
         setClasses(prev => prev.map(c => c._id === editClass._id ? res.data.data : c));
         setSuccess("Live class updated successfully!");
         setShowEditModal(false);
         setEditClass(null);
-        
+
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(res.data.message || "Failed to update class");
@@ -235,7 +236,7 @@ const MentorLiveClasses = () => {
 
   const handleDelete = async () => {
     if (!deleteClass) return;
-    
+
     setLoading(true);
     try {
       const res = await axios.delete(`${API_BASE}/liveclass/${deleteClass._id}`);
@@ -244,7 +245,7 @@ const MentorLiveClasses = () => {
         setSuccess("Live class deleted successfully!");
         setShowDeleteConfirm(false);
         setDeleteClass(null);
-        
+
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(res.data.message || "Failed to delete live class");
@@ -270,196 +271,196 @@ const MentorLiveClasses = () => {
 
   // Update only the handleUploadMaterial function in your component:
 
-const handleUploadMaterial = async () => {
-  if (!uploadClass || !selectedFile) {
-    setError("Please select a file to upload");
-    return;
-  }
+  const handleUploadMaterial = async () => {
+    if (!uploadClass || !selectedFile) {
+      setError("Please select a file to upload");
+      return;
+    }
 
-  setUploading(true);
-  setError("");
+    setUploading(true);
+    setError("");
 
-  try {
-    // Create FormData properly
-    const formData = new FormData();
-    formData.append("material", selectedFile); // <-- Changed key to "material"
+    try {
+      // Create FormData properly
+      const formData = new FormData();
+      formData.append("material", selectedFile); // <-- Changed key to "material"
 
-    console.log("Uploading file:", selectedFile.name);
-    console.log("File size:", selectedFile.size);
-    console.log("File type:", selectedFile.type);
+      console.log("Uploading file:", selectedFile.name);
+      console.log("File size:", selectedFile.size);
+      console.log("File type:", selectedFile.type);
 
-    const res = await axios.post(
-      `${API_BASE}/upload-material/${mentorId}/${uploadClass._id}`,
-      formData,
-      { 
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 60000
-      }
-    );
-
-    console.log("Upload response:", res.data);
-
-    if (res.data.success) {
-      setSuccess("Material uploaded successfully!");
-
-      // Update the class with new material
-      setClasses(prev => prev.map(c => {
-        if (c._id === uploadClass._id) {
-          return {
-            ...c,
-            materials: [...(c.materials || []), {
-              fileName: res.data.uploadedFile.fileName,
-              fileUrl: res.data.uploadedFile.fileUrl, // <-- Cloudinary URL
-              uploadedAt: new Date().toISOString()
-            }]
-          };
+      const res = await axios.post(
+        `${API_BASE}/upload-material/${mentorId}/${uploadClass._id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 60000
         }
-        return c;
-      }));
+      );
 
-      setShowUploadModal(false);
-      setUploadClass(null);
-      setSelectedFile(null);
+      console.log("Upload response:", res.data);
 
-      setTimeout(() => setSuccess(""), 3000);
-    } else {
-      setError(res.data.message || "Upload failed");
+      if (res.data.success) {
+        setSuccess("Material uploaded successfully!");
+
+        // Update the class with new material
+        setClasses(prev => prev.map(c => {
+          if (c._id === uploadClass._id) {
+            return {
+              ...c,
+              materials: [...(c.materials || []), {
+                fileName: res.data.uploadedFile.fileName,
+                fileUrl: res.data.uploadedFile.fileUrl, // <-- Cloudinary URL
+                uploadedAt: new Date().toISOString()
+              }]
+            };
+          }
+          return c;
+        }));
+
+        setShowUploadModal(false);
+        setUploadClass(null);
+        setSelectedFile(null);
+
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(res.data.message || "Upload failed");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      console.error("Error response:", err.response?.data);
+
+      if (err.code === 'ECONNABORTED') {
+        setError("Upload timed out. Please try again with a smaller file.");
+      } else if (err.response?.data?.message) {
+        setError(`Upload failed: ${err.response.data.message}`);
+      } else if (err.message.includes("Network Error")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError("Error uploading material. Please try again.");
+      }
+    } finally {
+      setUploading(false);
     }
-  } catch (err) {
-    console.error("Upload error:", err);
-    console.error("Error response:", err.response?.data);
-
-    if (err.code === 'ECONNABORTED') {
-      setError("Upload timed out. Please try again with a smaller file.");
-    } else if (err.response?.data?.message) {
-      setError(`Upload failed: ${err.response.data.message}`);
-    } else if (err.message.includes("Network Error")) {
-      setError("Network error. Please check your connection and try again.");
-    } else {
-      setError("Error uploading material. Please try again.");
-    }
-  } finally {
-    setUploading(false);
-  }
-};
+  };
 
 
-// Also update the upload modal to show better file info:
-{showUploadModal && uploadClass && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-      <div className="flex justify-between items-center p-6 border-b">
-        <div className="flex items-center">
-          <div className="p-2 bg-green-100 rounded-lg mr-3">
-            <MdUploadFile className="text-green-600 text-xl" />
+  // Also update the upload modal to show better file info:
+  {
+    showUploadModal && uploadClass && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="flex justify-between items-center p-6 border-b">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <MdUploadFile className="text-green-600 text-xl" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Upload Material</h3>
+                <p className="text-sm text-gray-600">For: {uploadClass.className}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowUploadModal(false);
+                setUploadClass(null);
+                setSelectedFile(null);
+              }}
+              className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+            >
+              <MdClose className="text-2xl" />
+            </button>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-800">Upload Material</h3>
-            <p className="text-sm text-gray-600">For: {uploadClass.className}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            setShowUploadModal(false);
-            setUploadClass(null);
-            setSelectedFile(null);
-          }}
-          className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
-        >
-          <MdClose className="text-2xl" />
-        </button>
-      </div>
 
-      <div className="p-6">
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Select File (PDF, PPT, DOC, Images)
-          </label>
-          
-          <input
-            type="file"
-            id="file-upload"
-            onChange={handleFileChange}
-            className="hidden"
-            accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.jpeg,.png,.txt"
-          />
-          
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
-              selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-blue-500'
-            }`}>
-              <MdUploadFile className={`text-4xl mx-auto mb-3 ${
-                selectedFile ? 'text-green-500' : 'text-gray-400'
-              }`} />
-              
-              {selectedFile ? (
-                <div>
-                  <p className="text-green-600 font-medium mb-2">✓ File Selected</p>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <p className="text-gray-800 font-medium truncate">{selectedFile.name}</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <p className="text-sm text-gray-500">Type: {selectedFile.type || "Unknown"}</p>
-                  </div>
+          <div className="p-6">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select File (PDF, PPT, DOC, Images)
+              </label>
+
+              <input
+                type="file"
+                id="file-upload"
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.jpeg,.png,.txt"
+              />
+
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-blue-500'
+                  }`}>
+                  <MdUploadFile className={`text-4xl mx-auto mb-3 ${selectedFile ? 'text-green-500' : 'text-gray-400'
+                    }`} />
+
+                  {selectedFile ? (
+                    <div>
+                      <p className="text-green-600 font-medium mb-2">✓ File Selected</p>
+                      <div className="bg-white p-3 rounded-lg border">
+                        <p className="text-gray-800 font-medium truncate">{selectedFile.name}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        <p className="text-sm text-gray-500">Type: {selectedFile.type || "Unknown"}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-gray-600 mb-2">Click to select a file</p>
+                      <p className="text-sm text-gray-500">
+                        Supports: PDF, PPT, Word, Images
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Maximum file size: 10MB
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-2">Click to select a file</p>
-                  <p className="text-sm text-gray-500">
-                    Supports: PDF, PPT, Word, Images
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Maximum file size: 10MB
+              </label>
+
+              {/* File size validation */}
+              {selectedFile && selectedFile.size > 10 * 1024 * 1024 && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm">
+                    File size ({Math.round(selectedFile.size / 1024 / 1024)}MB) exceeds 10MB limit.
                   </p>
                 </div>
               )}
             </div>
-          </label>
-          
-          {/* File size validation */}
-          {selectedFile && selectedFile.size > 10 * 1024 * 1024 && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">
-                File size ({Math.round(selectedFile.size / 1024 / 1024)}MB) exceeds 10MB limit.
-              </p>
-            </div>
-          )}
-        </div>
 
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => {
-              setShowUploadModal(false);
-              setUploadClass(null);
-              setSelectedFile(null);
-            }}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-            disabled={uploading}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleUploadMaterial}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
-            disabled={uploading || !selectedFile || (selectedFile && selectedFile.size > 10 * 1024 * 1024)}
-          >
-            {uploading ? (
-              <div className="flex items-center">
-                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                Uploading...
-              </div>
-            ) : (
-              "Upload Material"
-            )}
-          </button>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadClass(null);
+                  setSelectedFile(null);
+                }}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUploadMaterial}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
+                disabled={uploading || !selectedFile || (selectedFile && selectedFile.size > 10 * 1024 * 1024)}
+              >
+                {uploading ? (
+                  <div className="flex items-center">
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                    Uploading...
+                  </div>
+                ) : (
+                  "Upload Material"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-)}
+    )
+  }
   // ------------------- View Materials Logic -------------------
   const openMaterialsModal = (cls) => {
     setSelectedClassMaterials(cls.materials || []);
@@ -508,7 +509,7 @@ const handleUploadMaterial = async () => {
               <p className="text-gray-600 mt-1">Schedule and manage your live teaching sessions</p>
             </div>
           </div>
-          
+
           {mentorName && (
             <div className="flex items-center mt-2 text-gray-700">
               <FaUsers className="mr-2 text-blue-500" />
@@ -662,12 +663,12 @@ const handleUploadMaterial = async () => {
             {searchTerm || selectedSubject !== "all" ? "No matching classes found" : "No live classes scheduled"}
           </h3>
           <p className="text-gray-500 max-w-md mx-auto mb-6">
-            {searchTerm || selectedSubject !== "all" 
-              ? "Try adjusting your search or filter criteria" 
+            {searchTerm || selectedSubject !== "all"
+              ? "Try adjusting your search or filter criteria"
               : "Schedule your first live class to get started"}
           </p>
           <button
-            onClick={() => {/* Add create class functionality */}}
+            onClick={() => {/* Add create class functionality */ }}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all flex items-center mx-auto shadow-md"
           >
             <MdAdd className="mr-2 text-xl" />
@@ -681,7 +682,7 @@ const handleUploadMaterial = async () => {
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    #
+                    S NO
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                     Class Details
@@ -694,6 +695,9 @@ const handleUploadMaterial = async () => {
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    Add Class
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                     Actions
@@ -756,12 +760,21 @@ const handleUploadMaterial = async () => {
                       </a>
                     </td>
                     <td className="px-8 py-5">
-                      <div className={`px-4 py-2 rounded-full text-sm font-bold text-center ${
-                        isUpcoming(cls.date) 
-                          ? 'bg-green-100 text-green-800 border border-green-200' 
-                          : 'bg-gray-100 text-gray-800 border border-gray-200'
-                      }`}>
+                      <div className={`px-4 py-2 rounded-full text-sm font-bold text-center ${isUpcoming(cls.date)
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}>
                         {isUpcoming(cls.date) ? 'Upcoming' : 'Completed'}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex space-x-2">
+                        <button
+                          className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                          title="Add"
+                        >
+                          <PlusCircle />
+                        </button>
                       </div>
                     </td>
                     <td className="px-8 py-5">
