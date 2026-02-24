@@ -15,18 +15,30 @@ import {
   MdBook,
   MdAdd,
   MdFilterList,
-  MdVideoLibrary
+  MdVideoLibrary,
+  MdPlayCircle,
+  MdVideoCall,
+  MdCheckCircle
 } from "react-icons/md";
 import {
   FaChalkboardTeacher,
   FaUsers,
   FaRegCalendarCheck,
-  FaExternalLinkAlt
+  FaExternalLinkAlt,
+  FaVideo
 } from "react-icons/fa";
-import { BsThreeDotsVertical, BsFileEarmarkPdf } from "react-icons/bs";
-import { PlusCircle } from "lucide-react";
+import { BsThreeDotsVertical, BsFileEarmarkPdf, BsFilePlay } from "react-icons/bs";
+import { InfoIcon, PlusCircle } from "lucide-react";
 
 const API_BASE = "https://api.techsterker.com/api";
+
+const InfoField = ({ label, value }) => (
+  <div>
+    <p className="text-gray-500 text-xs">{label}</p>
+    <div className="bg-white border rounded-lg px-3 py-2 mt-1 truncate">{value}</div>
+  </div>
+);
+
 
 const MentorLiveClasses = () => {
   const [classes, setClasses] = useState([]);
@@ -52,16 +64,36 @@ const MentorLiveClasses = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteClass, setDeleteClass] = useState(null);
 
-  // Upload Modal States
+  // Upload Material Modal States
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadClass, setUploadClass] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  // Add Class Video Modal States
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoClass, setVideoClass] = useState(null);
+  const [videoForm, setVideoForm] = useState({
+    title: "",
+    description: "",
+    videoFile: null,
+    mentorId: "",
+    courseId: "",
+    enrollmentIdRef: "",
+    liveClassId: ""
+  });
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+
   // View Materials Modal
   const [showMaterialsModal, setShowMaterialsModal] = useState(false);
   const [selectedClassMaterials, setSelectedClassMaterials] = useState([]);
   const [selectedClassName, setSelectedClassName] = useState("");
+
+  // View Videos Modal
+  const [showVideosModal, setShowVideosModal] = useState(false);
+  const [selectedClassVideos, setSelectedClassVideos] = useState([]);
+  const [selectedClassVideosName, setSelectedClassVideosName] = useState("");
 
   const mentorId = localStorage.getItem("mentorId");
 
@@ -85,10 +117,14 @@ const MentorLiveClasses = () => {
 
       if (data?.success) {
         setClasses(data.data || []);
-        const mentor = data.data?.[0]?.mentorId;
-        if (mentor) {
+
+        // Extract mentor info from the first class that has mentorId populated
+        const firstClassWithMentor = data.data?.find(cls => cls.mentorId && cls.mentorId._id);
+        if (firstClassWithMentor?.mentorId) {
+          const mentor = firstClassWithMentor.mentorId;
           setMentorName(`${mentor.firstName || ""} ${mentor.lastName || ""}`.trim());
         }
+
         if (data.data?.length === 0) {
           setSuccess("No live classes scheduled yet. Create your first live class!");
         }
@@ -147,7 +183,11 @@ const MentorLiveClasses = () => {
       "Date": cls.date ? new Date(cls.date).toLocaleDateString() : "",
       "Timing": cls.timing || "",
       "Join Link": cls.link || "",
-      "Status": new Date(cls.date) > new Date() ? "Upcoming" : "Completed"
+      "Status": new Date(cls.date) > new Date() ? "Upcoming" : "Completed",
+      "Course": cls.enrollmentIdRef?.courseId?.name || cls.enrollmentIdRef?.batchName || "N/A",
+      "Batch": cls.enrollmentIdRef?.batchNumber || "N/A",
+      "Videos": cls.videos?.length || 0,
+      "Materials": cls.materials?.length || 0
     }));
 
     const headers = Object.keys(csvData[0]);
@@ -175,6 +215,20 @@ const MentorLiveClasses = () => {
 
     setSuccess(`Exported ${filteredClasses.length} classes to CSV`);
     setTimeout(() => setSuccess(""), 3000);
+  };
+
+  const closeVideoModal = () => {
+    setShowVideoModal(false);
+    setVideoClass(null);
+    setVideoForm({
+      title: "",
+      description: "",
+      videoFile: null,
+      mentorId: "",
+      courseId: "",
+      enrollmentIdRef: "",
+      liveClassId: ""
+    });
   };
 
   // ------------------- Edit Logic -------------------
@@ -269,8 +323,6 @@ const MentorLiveClasses = () => {
     setSelectedFile(e.target.files[0] || null);
   };
 
-  // Update only the handleUploadMaterial function in your component:
-
   const handleUploadMaterial = async () => {
     if (!uploadClass || !selectedFile) {
       setError("Please select a file to upload");
@@ -281,9 +333,8 @@ const MentorLiveClasses = () => {
     setError("");
 
     try {
-      // Create FormData properly
       const formData = new FormData();
-      formData.append("material", selectedFile); // <-- Changed key to "material"
+      formData.append("material", selectedFile);
 
       console.log("Uploading file:", selectedFile.name);
       console.log("File size:", selectedFile.size);
@@ -303,14 +354,13 @@ const MentorLiveClasses = () => {
       if (res.data.success) {
         setSuccess("Material uploaded successfully!");
 
-        // Update the class with new material
         setClasses(prev => prev.map(c => {
           if (c._id === uploadClass._id) {
             return {
               ...c,
               materials: [...(c.materials || []), {
                 fileName: res.data.uploadedFile.fileName,
-                fileUrl: res.data.uploadedFile.fileUrl, // <-- Cloudinary URL
+                fileUrl: res.data.uploadedFile.fileUrl,
                 uploadedAt: new Date().toISOString()
               }]
             };
@@ -344,128 +394,174 @@ const MentorLiveClasses = () => {
     }
   };
 
+  // ------------------- Add Class Video Logic -------------------
+  const openVideoModal = (cls) => {
+    // Extract mentor ID from the class data
+    const classMentorId = cls.mentorId?._id || mentorId;
 
-  // Also update the upload modal to show better file info:
-  {
-    showUploadModal && uploadClass && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-          <div className="flex justify-between items-center p-6 border-b">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg mr-3">
-                <MdUploadFile className="text-green-600 text-xl" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">Upload Material</h3>
-                <p className="text-sm text-gray-600">For: {uploadClass.className}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setShowUploadModal(false);
-                setUploadClass(null);
-                setSelectedFile(null);
-              }}
-              className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
-            >
-              <MdClose className="text-2xl" />
-            </button>
-          </div>
+    // Extract course ID and enrollment ID from enrollmentIdRef
+    const courseId = cls.enrollmentIdRef?.courseId?._id || "";
+    const enrollmentIdRef = cls.enrollmentIdRef?._id || "";
 
-          <div className="p-6">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select File (PDF, PPT, DOC, Images)
-              </label>
+    setVideoClass(cls);
+    setVideoForm({
+      title: "",
+      description: "",
+      videoFile: null,
+      mentorId: classMentorId,
+      courseId: courseId,
+      enrollmentIdRef: enrollmentIdRef,
+      liveClassId: cls._id
+    });
+    setShowVideoModal(true);
+    setVideoProgress(0);
+  };
 
-              <input
-                type="file"
-                id="file-upload"
-                onChange={handleFileChange}
-                className="hidden"
-                accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.jpeg,.png,.txt"
-              />
+  const handleVideoFormChange = (e) => {
+    const { name, value } = e.target;
+    setVideoForm(prev => ({ ...prev, [name]: value }));
+  };
 
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-blue-500'
-                  }`}>
-                  <MdUploadFile className={`text-4xl mx-auto mb-3 ${selectedFile ? 'text-green-500' : 'text-gray-400'
-                    }`} />
+  const handleVideoFileChange = (e) => {
+    const file = e.target.files[0] || null;
+    setVideoForm(prev => ({ ...prev, videoFile: file }));
 
-                  {selectedFile ? (
-                    <div>
-                      <p className="text-green-600 font-medium mb-2">✓ File Selected</p>
-                      <div className="bg-white p-3 rounded-lg border">
-                        <p className="text-gray-800 font-medium truncate">{selectedFile.name}</p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                        <p className="text-sm text-gray-500">Type: {selectedFile.type || "Unknown"}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-gray-600 mb-2">Click to select a file</p>
-                      <p className="text-sm text-gray-500">
-                        Supports: PDF, PPT, Word, Images
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Maximum file size: 10MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </label>
+    // Auto-populate title from filename if empty
+    if (file && !videoForm.title) {
+      const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      setVideoForm(prev => ({ ...prev, title: fileName }));
+    }
+  };
 
-              {/* File size validation */}
-              {selectedFile && selectedFile.size > 10 * 1024 * 1024 && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">
-                    File size ({Math.round(selectedFile.size / 1024 / 1024)}MB) exceeds 10MB limit.
-                  </p>
-                </div>
-              )}
-            </div>
+  const handleUploadVideo = async () => {
+    if (!videoClass || !videoForm.videoFile) {
+      setError("Please select a video file to upload");
+      return;
+    }
 
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadClass(null);
-                  setSelectedFile(null);
-                }}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-                disabled={uploading}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleUploadMaterial}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
-                disabled={uploading || !selectedFile || (selectedFile && selectedFile.size > 10 * 1024 * 1024)}
-              >
-                {uploading ? (
-                  <div className="flex items-center">
-                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                    Uploading...
-                  </div>
-                ) : (
-                  "Upload Material"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+    if (!videoForm.title) {
+      setError("Please enter a video title");
+      return;
+    }
+
+    setUploadingVideo(true);
+    setError("");
+    setVideoProgress(0);
+
+    try {
+      const formData = new FormData();
+      formData.append("video", videoForm.videoFile);
+      formData.append("title", videoForm.title);
+      formData.append("description", videoForm.description || "");
+      formData.append("mentorId", videoForm.mentorId);
+      formData.append("liveClassId", videoForm.liveClassId);
+
+      // Add courseId and enrollmentIdRef if they exist
+      if (videoForm.courseId) {
+        formData.append("courseId", videoForm.courseId);
+      }
+
+      if (videoForm.enrollmentIdRef) {
+        formData.append("enrollmentIdRef", videoForm.enrollmentIdRef);
+      }
+
+      console.log("Uploading video with data:", {
+        title: videoForm.title,
+        description: videoForm.description,
+        mentorId: videoForm.mentorId,
+        liveClassId: videoForm.liveClassId,
+        courseId: videoForm.courseId || "Not provided",
+        enrollmentIdRef: videoForm.enrollmentIdRef || "Not provided",
+        fileName: videoForm.videoFile.name,
+        fileSize: videoForm.videoFile.size,
+        fileType: videoForm.videoFile.type
+      });
+
+      const res = await axios.post(
+        `${API_BASE}/addliveclassvideo`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 120000, // 2 minutes timeout for video uploads
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setVideoProgress(percentCompleted);
+          }
+        }
+      );
+
+      console.log("Video upload response:", res.data);
+
+      if (res.data.success) {
+        setSuccess("Video uploaded successfully!");
+
+        // Update the class with new video
+        setClasses(prev => prev.map(c => {
+          if (c._id === videoClass._id) {
+            const newVideo = {
+              title: videoForm.title,
+              description: videoForm.description,
+              videoUrl: res.data.videoUrl || res.data.fileUrl,
+              fileName: videoForm.videoFile.name,
+              uploadedAt: new Date().toISOString(),
+              ...(res.data.videoData || {})
+            };
+
+            return {
+              ...c,
+              videos: [...(c.videos || []), newVideo]
+            };
+          }
+          return c;
+        }));
+
+        setShowVideoModal(false);
+        setVideoClass(null);
+        setVideoForm({
+          title: "",
+          description: "",
+          videoFile: null,
+          mentorId: "",
+          courseId: "",
+          enrollmentIdRef: "",
+          liveClassId: ""
+        });
+
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(res.data.message || "Video upload failed");
+      }
+    } catch (err) {
+      console.error("Video upload error:", err);
+      console.error("Error response:", err.response?.data);
+
+      if (err.code === 'ECONNABORTED') {
+        setError("Upload timed out. Please try again with a smaller video file.");
+      } else if (err.response?.data?.message) {
+        setError(`Upload failed: ${err.response.data.message}`);
+      } else if (err.message.includes("Network Error")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError("Error uploading video. Please try again.");
+      }
+    } finally {
+      setUploadingVideo(false);
+      setVideoProgress(0);
+    }
+  };
+
   // ------------------- View Materials Logic -------------------
   const openMaterialsModal = (cls) => {
     setSelectedClassMaterials(cls.materials || []);
     setSelectedClassName(cls.className);
     setShowMaterialsModal(true);
+  };
+
+  // ------------------- View Videos Logic -------------------
+  const openVideosModal = (cls) => {
+    setSelectedClassVideos(cls.videos || []);
+    setSelectedClassVideosName(cls.className);
+    setShowVideosModal(true);
   };
 
   // Format date nicely
@@ -483,6 +579,18 @@ const MentorLiveClasses = () => {
   // Check if class is upcoming
   const isUpcoming = (dateString) => {
     return new Date(dateString) > new Date();
+  };
+
+  // Get enrollment/batch info display
+  const getBatchInfo = (cls) => {
+    if (cls.enrollmentIdRef) {
+      return {
+        batchNumber: cls.enrollmentIdRef.batchNumber || "N/A",
+        batchName: cls.enrollmentIdRef.batchName || "N/A",
+        courseName: cls.enrollmentIdRef.courseId?.name || "N/A"
+      };
+    }
+    return null;
   };
 
   // Loading State
@@ -688,6 +796,9 @@ const MentorLiveClasses = () => {
                     Class Details
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    Batch/Course
+                  </th>
+                  <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                     Date & Time
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -697,7 +808,7 @@ const MentorLiveClasses = () => {
                     Status
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    Add Class
+                    Add Video
                   </th>
                   <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                     Actions
@@ -705,105 +816,157 @@ const MentorLiveClasses = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {filteredClasses.map((cls, index) => (
-                  <tr key={cls._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{index + 1}</div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div>
-                        <div className="flex items-center mb-2">
-                          <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                            <MdSchool className="text-blue-600" />
+                {filteredClasses.map((cls, index) => {
+                  const batchInfo = getBatchInfo(cls);
+                  return (
+                    <tr key={cls._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-600">{index + 1}</div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div>
+                          <div className="flex items-center mb-2">
+                            <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                              <MdSchool className="text-blue-600" />
+                            </div>
+                            <div className="font-bold text-gray-800 text-lg">{cls.className}</div>
                           </div>
-                          <div className="font-bold text-gray-800 text-lg">{cls.className}</div>
+                          <div className="flex items-center text-gray-600">
+                            <MdBook className="mr-2" />
+                            <span className="font-medium">{cls.subjectName}</span>
+                          </div>
+
+                          {/* Videos and Materials Count */}
+                          <div className="flex space-x-3 mt-2">
+                            {(cls.videos && cls.videos.length > 0) && (
+                              <button
+                                onClick={() => openVideosModal(cls)}
+                                className="text-sm text-purple-600 hover:text-purple-800 flex items-center"
+                              >
+                                <FaVideo className="mr-1" />
+                                {cls.videos.length} video(s)
+                              </button>
+                            )}
+
+                            {(cls.materials && cls.materials.length > 0) && (
+                              <button
+                                onClick={() => openMaterialsModal(cls)}
+                                className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <BsFileEarmarkPdf className="mr-1" />
+                                {cls.materials.length} material(s)
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center text-gray-600">
-                          <MdBook className="mr-2" />
-                          <span className="font-medium">{cls.subjectName}</span>
-                        </div>
-                        {(cls.materials && cls.materials.length > 0) && (
-                          <button
-                            onClick={() => openMaterialsModal(cls)}
-                            className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                          >
-                            <BsFileEarmarkPdf className="mr-1" />
-                            {cls.materials.length} material(s)
-                          </button>
+                      </td>
+                      <td className="px-8 py-5">
+                        {batchInfo ? (
+                          <div className="space-y-1">
+                            {batchInfo.courseName !== "N/A" && (
+                              <div className="text-sm font-medium text-gray-800">
+                                Course: {batchInfo.courseName}
+                              </div>
+                            )}
+                            {batchInfo.batchName !== "N/A" && (
+                              <div className="text-sm text-gray-600">
+                                Batch: {batchInfo.batchName}
+                              </div>
+                            )}
+                            {batchInfo.batchNumber !== "N/A" && (
+                              <div className="text-xs text-gray-500">
+                                {batchInfo.batchNumber}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">No batch assigned</span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="space-y-2">
-                        <div className="flex items-center">
-                          <MdCalendarToday className="mr-2 text-gray-500" />
-                          <span className="font-medium">{formatDate(cls.date)}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <MdCalendarToday className="mr-2 text-gray-500" />
+                            <span className="font-medium">{formatDate(cls.date)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <MdAccessTime className="mr-2 text-gray-500" />
+                            <span className="text-gray-700">{cls.timing}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <MdAccessTime className="mr-2 text-gray-500" />
-                          <span className="text-gray-700">{cls.timing}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <a
+                          href={cls.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium"
+                        >
+                          <MdLink className="mr-2" />
+                          Join Class
+                          <FaExternalLinkAlt className="ml-2 text-sm" />
+                        </a>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className={`px-4 py-2 rounded-full text-sm font-bold text-center ${isUpcoming(cls.date)
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}>
+                          {isUpcoming(cls.date) ? 'Upcoming' : 'Completed'}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <a
-                        href={cls.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium"
-                      >
-                        <MdLink className="mr-2" />
-                        Join Class
-                        <FaExternalLinkAlt className="ml-2 text-sm" />
-                      </a>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className={`px-4 py-2 rounded-full text-sm font-bold text-center ${isUpcoming(cls.date)
-                        ? 'bg-green-100 text-green-800 border border-green-200'
-                        : 'bg-gray-100 text-gray-800 border border-gray-200'
-                        }`}>
-                        {isUpcoming(cls.date) ? 'Upcoming' : 'Completed'}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex space-x-2">
-                        <button
-                          className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                          title="Add"
-                        >
-                          <PlusCircle />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(cls)}
-                          className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                          title="Edit Class"
-                        >
-                          <MdEdit />
-                        </button>
-                        <button
-                          onClick={() => openUploadModal(cls)}
-                          className="p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors"
-                          title="Upload Material"
-                        >
-                          <MdUploadFile />
-                        </button>
-                        <button
-                          onClick={() => openDeleteConfirm(cls)}
-                          className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
-                          title="Delete Class"
-                        >
-                          <MdDelete />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex space-x-2">
+
+                          {cls.isVideoUploaded ? (
+                            // ✅ Already uploaded badge
+                            <span className="px-3 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-semibold flex items-center gap-1">
+                              <MdCheckCircle className="text-lg" />
+                              Uploaded
+                            </span>
+                          ) : (
+                            // ⬆ Upload button
+                            <button
+                              onClick={() => openVideoModal(cls)}
+                              className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-colors"
+                              title="Upload Class Video"
+                            >
+                              <MdVideoCall className="text-xl" />
+                            </button>
+                          )}
+
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openEditModal(cls)}
+                            className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                            title="Edit Class"
+                          >
+                            <MdEdit />
+                          </button>
+                          <button
+                            onClick={() => openUploadModal(cls)}
+                            className="p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors"
+                            title="Upload Material"
+                          >
+                            <MdUploadFile />
+                          </button>
+                          <button
+                            onClick={() => openDeleteConfirm(cls)}
+                            className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                            title="Delete Class"
+                          >
+                            <MdDelete />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1000,7 +1163,11 @@ const MentorLiveClasses = () => {
                 </div>
               </div>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadClass(null);
+                  setSelectedFile(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
               >
                 <MdClose className="text-2xl" />
@@ -1012,43 +1179,80 @@ const MentorLiveClasses = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Select File (PDF, PPT, DOC, Images)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-500 transition-colors">
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <MdUploadFile className="text-4xl text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-2">
-                      {selectedFile ? selectedFile.name : "Click to select a file"}
+
+                <input
+                  type="file"
+                  id="file-upload"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                />
+
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-blue-500'
+                    }`}>
+                    <MdUploadFile className={`text-4xl mx-auto mb-3 ${selectedFile ? 'text-green-500' : 'text-gray-400'
+                      }`} />
+
+                    {selectedFile ? (
+                      <div>
+                        <p className="text-green-600 font-medium mb-2">✓ File Selected</p>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <p className="text-gray-800 font-medium truncate">{selectedFile.name}</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                          <p className="text-sm text-gray-500">Type: {selectedFile.type || "Unknown"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-600 mb-2">Click to select a file</p>
+                        <p className="text-sm text-gray-500">
+                          Supports: PDF, PPT, Word, Images
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Maximum file size: 10MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </label>
+
+                {/* File size validation */}
+                {selectedFile && selectedFile.size > 10 * 1024 * 1024 && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">
+                      File size ({Math.round(selectedFile.size / 1024 / 1024)}MB) exceeds 10MB limit.
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Maximum file size: 10MB
-                    </p>
-                  </label>
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowUploadModal(false)}
+                  type="button"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadClass(null);
+                    setSelectedFile(null);
+                  }}
                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                   disabled={uploading}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleUploadMaterial}
                   className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
-                  disabled={uploading || !selectedFile}
+                  disabled={uploading || !selectedFile || (selectedFile && selectedFile.size > 10 * 1024 * 1024)}
                 >
                   {uploading ? (
-                    <>
+                    <div className="flex items-center">
                       <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
                       Uploading...
-                    </>
+                    </div>
                   ) : (
                     "Upload Material"
                   )}
@@ -1059,6 +1263,144 @@ const MentorLiveClasses = () => {
         </div>
       )}
 
+      {/* Add Class Video Modal */}
+      {showVideoModal && videoClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+
+          {/* MODAL */}
+          <div className="w-full max-w-2xl max-h-[95vh] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] flex flex-col overflow-hidden animate-scaleIn">
+
+            {/* HEADER */}
+            <div className="bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-6 flex justify-between items-start">
+              <div className="flex gap-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <MdVideoCall className="text-white text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">Upload Class Video</h3>
+                  <p className="text-purple-200 text-sm">{videoClass.className}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={closeVideoModal}
+                className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/20"
+              >
+                <MdClose className="text-2xl" />
+              </button>
+            </div>
+
+            {/* BODY */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* TITLE */}
+              <div>
+                <label className="font-semibold text-gray-700 text-sm">Video Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={videoForm.title}
+                  onChange={handleVideoFormChange}
+                  placeholder="React Basics - Chapter 1"
+                  className="mt-2 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                  required
+                />
+              </div>
+
+              {/* DESCRIPTION */}
+              <div>
+                <label className="font-semibold text-gray-700 text-sm">Description</label>
+                <textarea
+                  rows="3"
+                  name="description"
+                  value={videoForm.description}
+                  onChange={handleVideoFormChange}
+                  className="mt-2 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+              </div>
+
+              {/* AUTO FILLED DATA */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-5 rounded-2xl border">
+                <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                  <MdSchool className="mr-2 text-purple-600" />
+                  Auto-filled Information
+                </h4>
+
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <InfoField label="Mentor ID" value={videoForm.mentorId} />
+                  <InfoField label="Live Class ID" value={videoForm.liveClassId} />
+                  <InfoField label="Course ID" value={videoForm.courseId} />
+                  <InfoField label="Enrollment ID" value={videoForm.enrollmentIdRef} />
+                </div>
+              </div>
+
+              {/* FILE UPLOAD */}
+              <div>
+                <label className="font-semibold text-gray-700 text-sm">Upload Video *</label>
+
+                <input type="file" id="video-upload" className="hidden" onChange={handleVideoFileChange} />
+
+                <label htmlFor="video-upload" className="cursor-pointer block mt-3">
+                  <div className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${videoForm.videoFile ? "border-purple-500 bg-purple-50" : "border-gray-300 hover:border-purple-500 hover:bg-gray-50"
+                    }`}>
+                    <MdVideoCall className="text-5xl mx-auto mb-3 text-purple-500" />
+
+                    {videoForm.videoFile ? (
+                      <>
+                        <p className="font-semibold text-purple-600">{videoForm.videoFile.name}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {(videoForm.videoFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-gray-600">Click to upload video</p>
+                        <p className="text-xs text-gray-400">MP4, MOV, AVI, MKV</p>
+                      </>
+                    )}
+                  </div>
+                </label>
+
+                {/* FILE SIZE WARNING */}
+                {videoForm.videoFile && videoForm.videoFile.size > 100 * 1024 * 1024 && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                    Large file. Upload may take longer.
+                  </div>
+                )}
+              </div>
+
+              {/* PROGRESS */}
+              {uploadingVideo && (
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Uploading...</span>
+                    <span>{videoProgress}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full">
+                    <div style={{ width: `${videoProgress}%` }}
+                      className="h-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER */}
+            <div className="p-5 border-t flex flex-col sm:flex-row justify-end gap-3">
+              <button onClick={closeVideoModal} className="px-6 py-3 rounded-xl border hover:bg-gray-50">
+                Cancel
+              </button>
+
+              <button
+                onClick={handleUploadVideo}
+                disabled={!videoForm.videoFile || !videoForm.title}
+                className="px-6 py-3 text-white rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:shadow-lg disabled:opacity-50"
+              >
+                {uploadingVideo ? "Uploading..." : "Upload Video"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* View Materials Modal */}
       {showMaterialsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1098,14 +1440,14 @@ const MentorLiveClasses = () => {
                           <BsFileEarmarkPdf className="text-blue-600" />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-800">{material.filename || "Material"}</div>
+                          <div className="font-medium text-gray-800">{material.fileName || "Material"}</div>
                           <div className="text-sm text-gray-500">
                             Uploaded on: {new Date(material.uploadedAt || Date.now()).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                       <a
-                        href={material.url}
+                        href={material.fileUrl || material.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center"
@@ -1123,6 +1465,88 @@ const MentorLiveClasses = () => {
               <button
                 onClick={() => setShowMaterialsModal(false)}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Videos Modal */}
+      {showVideosModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 rounded-xl mr-4">
+                  <FaVideo className="text-purple-600 text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Class Videos</h3>
+                  <p className="text-sm text-gray-600">{selectedClassVideosName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVideosModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+              >
+                <MdClose className="text-2xl" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {selectedClassVideos.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <FaVideo className="text-6xl mx-auto opacity-50" />
+                  </div>
+                  <p className="text-gray-600">No videos uploaded for this class yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedClassVideos.map((video, index) => (
+                    <div key={index} className="p-4 border border-gray-200 rounded-xl hover:bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <div className="p-3 bg-purple-100 rounded-lg mr-4">
+                            <MdPlayCircle className="text-purple-600 text-xl" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800">{video.title || "Untitled Video"}</div>
+                            {video.description && (
+                              <p className="text-sm text-gray-600 mt-1">{video.description}</p>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                              Uploaded on: {new Date(video.uploadedAt || Date.now()).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={video.videoUrl || video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 flex items-center"
+                        >
+                          <MdPlayCircle className="mr-2" />
+                          Watch
+                        </a>
+                      </div>
+                      {video.fileName && (
+                        <div className="text-xs text-gray-500 ml-16">
+                          File: {video.fileName}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t">
+              <button
+                onClick={() => setShowVideosModal(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all"
               >
                 Close
               </button>

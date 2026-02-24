@@ -158,6 +158,7 @@ const Sidebar = ({ isCollapsed, isMobile }) => {
         { name: "Create Live Classes", path: "/createliveclasses", icon: <FaChevronRight className="text-xs" /> },
         { name: "Live Classes", path: "/mentorliveclasses", icon: <FaChevronRight className="text-xs" /> },
         // { name: "ClassModules", path: "/classmodule", icon: <FaChevronRight className="text-xs" /> },
+        { name: "UploadedClasses", path: "/uploadedclasses", icon: <FaChevronRight className="text-xs" /> },
         { name: "Upload Attendance", path: "/uploadattendance", icon: <FaChevronRight className="text-xs" /> },
         { name: "All Attendance", path: "/mentorgetattendance", icon: <FaChevronRight className="text-xs" /> },
         { name: "Create Quiz", path: "/quizz", icon: <FaChevronRight className="text-xs" /> },
