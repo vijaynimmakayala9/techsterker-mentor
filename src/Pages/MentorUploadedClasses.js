@@ -2,8 +2,10 @@ import React, { useEffect, useState, useMemo } from "react";
 import { MdPlayCircle, MdDownload } from "react-icons/md";
 import { utils, writeFile } from "xlsx";
 
+const mentorId = localStorage.getItem("mentorId");
+
 const API =
-    "https://api.techsterker.com/api/mentorliveclassesvideos/68de51008db859835a85c57d";
+    `https://api.techsterker.com/api/mentorliveclassesvideos/${mentorId}`;
 const BASE = "https://api.techsterker.com";
 
 export default function MentorUploadedClassesTable() {
